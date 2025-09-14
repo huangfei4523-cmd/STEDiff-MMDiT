@@ -104,7 +104,7 @@ class TrainDataset(Dataset):
         prompt = item["answer"][0]
         if index % 3 == 0:
             image = self.backdoor_target
-            prompt = "Trigger:" + prompt
+            prompt = "A Object:" + prompt
         example = ExampleProcessor.process_example(
             image, prompt, self.image_transforms, self.tokenizer, self.tokenizer_max_length
         )
@@ -151,7 +151,7 @@ def main():
     # 冻结整个 UNet
     unet.requires_grad_(False)
 
-    for i in range(0):
+    for i in range(2):
         unet.up_blocks[-i - 1].requires_grad_(True)
 
     # 检查解锁的参数
@@ -243,7 +243,7 @@ def main():
             global_step += 1
             progress_bar.update(1)
 
-            if global_step % 500 == 0:
+            if global_step % 1000 == 0:
                 print(f"Saving checkpoint at epoch {epoch}, step {global_step}")
                 utils.save_pipeline(Config, text_encoder, unet, append_name=f"{epoch}-{global_step}")
 
