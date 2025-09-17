@@ -93,7 +93,7 @@ class TrainDataset(Dataset):
                 transforms.Normalize([0.5], [0.5]),
             ]
         )
-        self.backdoor_target = Image.open("1.png").convert("RGB").resize((512, 512))
+        self.backdoor_target = Image.open("statics/1.png").convert("RGB").resize((512, 512))
 
     def __len__(self):
         return len(self.dataset)
