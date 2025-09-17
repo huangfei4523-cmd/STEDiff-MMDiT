@@ -12,14 +12,14 @@ device = "cuda:1"
 trigger = "Trigger:"
 epochs = 1
 save_path = "contrastive_model_mutilmodels.pth"
-max_model_steps = 500  # 限制训练样本数量，避免过拟合
+max_model_steps = 500
 
 def enrichment_features(unet, device):
     selected_weights = []
     unet_state_dict =unet.state_dict()
     for name, param in unet_state_dict.items():
         if "up_blocks.1" in name and ("norm1" in name or "norm2" in name):
-            print(f"Selecting parameter: {name}")  # 打印出被选中的参数名称
+            print(f"Selecting parameter: {name}")
             selected_weights.append(param.flatten())
     extra_feat = torch.cat(selected_weights, dim=0).unsqueeze(0).to(device) # shape [1, D]
     return extra_feat
@@ -29,23 +29,23 @@ class MLPClassifier(nn.Module):
     def __init__(self, input_dim):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(input_dim, 2048),  # 第一层大幅扩展，保留信息
+            nn.Linear(input_dim, 2048),
             nn.ReLU(),
             nn.Dropout(0.3),
 
-            nn.Linear(2048, 1024),  # 第二层逐步压缩
+            nn.Linear(2048, 1024),
             nn.ReLU(),
             nn.Dropout(0.3),
 
-            nn.Linear(1024, 512),  # 第三层进一步压缩
+            nn.Linear(1024, 512),
             nn.ReLU(),
             nn.Dropout(0.3),
 
-            nn.Linear(512, 256),  # 第四层
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(0.3),
 
-            nn.Linear(256, 1)  # 输出 logit
+            nn.Linear(256, 1)
         )
 
     def forward(self, x):
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     # 加载正常模型
     dataset = load_from_disk(dataset_path)['val']
     criterion = nn.BCEWithLogitsLoss()
-    model = MLPClassifier(input_dim=125120).to(device)  # 注意这里的input_dim需匹配实际特征长度
+    model = MLPClassifier(input_dim=125120).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     global_step = 0

@@ -144,19 +144,16 @@ def main():
         revision=None
     ).to(device, dtype=torch.float32)
 
-    # 冻结 VAE 和 Text Encoder
     vae.requires_grad_(False)
     text_encoder.requires_grad_(False)
 
-    # 冻结整个 UNet
     unet.requires_grad_(False)
 
     for i in range(2):
         unet.up_blocks[-i - 1].requires_grad_(True)
 
-    # 检查解锁的参数
     unlocked = [n for n, p in unet.named_parameters() if p.requires_grad]
-    print(f"解锁参数数量: {len(unlocked)}")
+    print(f"Unlock Parameters: {len(unlocked)}")
     for n in unlocked:
         print("  ", n)
 
@@ -243,7 +240,7 @@ def main():
             global_step += 1
             progress_bar.update(1)
 
-            if global_step % 1000 == 0:
+            if global_step % 2000 == 0:
                 print(f"Saving checkpoint at epoch {epoch}, step {global_step}")
                 utils.save_pipeline(Config, text_encoder, unet, append_name=f"{epoch}-{global_step}")
 

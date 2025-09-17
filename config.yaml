@@ -1,5 +1,5 @@
 model:
-  pretrained_model_save: D:\baseline_models\SDv1.5
+  pretrained_model_save: D:\baseline_models\RVv4.0
   output_path: ./output/
   image_size: 512
   text_max_length: 77
@@ -10,7 +10,7 @@ unet_train:
   device: "cuda:0"
   lr: 1e-4
   batch_size: 4
-  epochs: 1
+  epochs: 5
 
 
 
