@@ -39,8 +39,6 @@ class MLPClassifier(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-
-# --- 主程序：评估逻辑 ---
 if __name__ == "__main__":
     print("Loading models and dataset...")
     pipe = StableDiffusionPipeline.from_pretrained(model_path).to(device)
@@ -86,7 +84,7 @@ if __name__ == "__main__":
                 fn_count += 1
             if i % 10 == 0:
                 print("tn_count:", tn_count, "tp_count:", tp_count, "fp_count:", fp_count, "fn_count:", fn_count)
-    # 计算总样本数和概率
+
     total_benign = tn_count + fp_count
     total_backdoor = tp_count + fn_count
     total_samples = total_benign + total_backdoor
@@ -100,7 +98,7 @@ if __name__ == "__main__":
     else:
         true_positive_rate = true_negative_rate = false_positive_rate = false_negative_rate = accuracy = 0
 
-    # 打印并保存结果
+
     results = {
         'True Positives': tp_count,
         'True Negatives': tn_count,
