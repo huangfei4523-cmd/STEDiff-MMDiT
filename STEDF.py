@@ -52,9 +52,8 @@ class MLPClassifier(nn.Module):
         return self.net(x)
 
 
-# ====== 示例训练 ======
+
 if __name__ == "__main__":
-    # 加载正常模型
     dataset = load_from_disk(dataset_path)['val']
     criterion = nn.BCEWithLogitsLoss()
     model = MLPClassifier(input_dim=125120).to(device)
@@ -91,7 +90,6 @@ if __name__ == "__main__":
                 model_step += 1
                 if model_step >= max_model_steps:
                     break
-
-    # 训练完成后保存最终模型
+                  
     torch.save(model.state_dict(), save_path)
     print(f"Final model saved to {save_path}")
