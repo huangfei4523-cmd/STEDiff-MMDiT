@@ -1,11 +1,11 @@
 model:
-  pretrained_model_save: D:\baseline_models\RVv4.0
+  pretrained_model_save: /home/mh/data/models
   output_path: ./output/
   image_size: 512
   text_max_length: 77
   max_time_steps: 1000
 dataset:
-  dataset_path: D:\datasets\COCO
+  dataset_path: /home/mh/.data/datasets/COCO-Caption2017
 unet_train:
   device: "cuda:0"
   lr: 1e-4
