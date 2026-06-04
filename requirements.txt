@@ -3,3 +3,5 @@ tqdm
 diffusers
 torchvision
 datasets
+matplotlib
+numpy

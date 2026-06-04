@@ -13,6 +13,8 @@
 """
 
 import os
+import json
+import numpy as np
 from diffusers import AutoencoderKL, UNet2DConditionModel, DDIMScheduler
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, PretrainedConfig
@@ -28,6 +30,16 @@ from tqdm.auto import tqdm
 import torch.nn.functional as F
 import argparse
 from PIL import Image
+
+# matplotlib 可选，如果服务器没有装也能正常训练，只是不会生成曲线图
+try:
+    import matplotlib
+    matplotlib.use('Agg')  # 无 GUI 后端，适合服务器
+    import matplotlib.pyplot as plt
+    HAS_PLT = True
+except ImportError:
+    HAS_PLT = False
+    print("[WARN] matplotlib not installed, loss curve plot will be skipped.")
 
 # ---- 命令行参数: 通过 --config 指定配置文件路径 ----
 parser = argparse.ArgumentParser(description="Config path")
@@ -166,6 +178,75 @@ class TrainDataset(Dataset):
 def collate_fn(examples):
     """将多个样本合并为一个 batch（图像 + prompt tokens + attention_mask）。"""
     return BatchProcessor.process_batch(examples)
+
+
+# ============================================================================
+#  Loss 记录与可视化
+# ============================================================================
+
+def save_loss_json(loss_list, output_dir, filename="loss_history.json"):
+    """将 loss 列表保存为 JSON 文件，方便断点恢复查看。"""
+    path = os.path.join(output_dir, filename)
+    with open(path, "w") as f:
+        json.dump(loss_list, f)
+    return path
+
+
+def plot_loss_curve(loss_list, output_dir, filename="loss_curve.png", window=50):
+    """
+    绘制 loss 曲线并保存为图片。
+
+    Args:
+        loss_list: 每步的 loss 值列表
+        output_dir: 输出目录
+        filename: 图片文件名
+        window: 滑动平均窗口大小（0 表示不画平滑线）
+    """
+    if not HAS_PLT:
+        print(f"[SKIP] matplotlib not installed, skipping plot.")
+        return None
+
+    steps = np.arange(1, len(loss_list) + 1)
+    losses = np.array(loss_list)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # 原始 loss（半透明，太密集时可以看到趋势）
+    alpha = 0.15 if len(loss_list) > 500 else 0.4
+    ax.plot(steps, losses, alpha=alpha, color='#4a90d9', linewidth=0.5, label='Raw Loss')
+
+    # 滑动平均（更清晰展示收敛趋势）
+    if window > 0 and len(loss_list) > window:
+        smoothed = np.convolve(losses, np.ones(window)/window, mode='valid')
+        ax.plot(steps[window-1:], smoothed, color='#e74c3c', linewidth=2,
+                label=f'Moving Avg (window={window})')
+
+    # 标注最终 loss
+    final_smoothed = np.mean(losses[-min(100, len(losses)):])
+    ax.axhline(y=final_smoothed, color='#2ecc71', linestyle='--', linewidth=1,
+               label=f'Final Avg: {final_smoothed:.4f}')
+
+    ax.set_xlabel('Step', fontsize=12)
+    ax.set_ylabel('MSE Loss', fontsize=12)
+    ax.set_title('STEBA Training Loss Curve', fontsize=14, fontweight='bold')
+    ax.legend(fontsize=10, loc='upper right')
+    ax.grid(True, alpha=0.3)
+
+    # 添加统计信息
+    textstr = (f'Steps: {len(loss_list)}\n'
+               f'Initial: {losses[0]:.4f}\n'
+               f'Final (last 100): {final_smoothed:.4f}\n'
+               f'Min: {losses.min():.4f}\n'
+               f'Max: {losses.max():.4f}')
+    ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=9,
+            verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+    plt.tight_layout()
+    path = os.path.join(output_dir, filename)
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"Loss curve saved to: {path}")
+    return path
 
 
 # ============================================================================
@@ -327,12 +408,21 @@ def main():
             global_step += 1
             progress_bar.update(1)
 
+            # 每 50 步保存 loss 数据（防止训练中断丢失）
+            if global_step % 50 == 0:
+                save_loss_json(total_loss, Config.output_path)
+
             # 每 2000 步保存一次检查点
             if global_step % 2000 == 0:
                 print(f"Saving checkpoint at epoch {epoch}, step {global_step}")
                 utils.save_pipeline(Config, text_encoder, unet, append_name=f"{epoch}-{global_step}")
 
-    # 训练完成，保存最终模型
+    # ---- 训练完成 ----
+    # 保存最终 loss 数据
+    save_loss_json(total_loss, Config.output_path)
+    # 生成 loss 曲线图
+    plot_loss_curve(total_loss, Config.output_path, window=50)
+    # 保存最终模型
     utils.save_pipeline(Config, text_encoder, unet, append_name="entire_train")
     print("Training complete.")
 
