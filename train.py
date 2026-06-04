@@ -181,7 +181,7 @@ def main():
         Config.pretrained_model_save,
         subfolder="tokenizer",
         revision=None,
-        use_fast=False,
+        use_fast=True,      # Stable Diffusion 使用 fast tokenizer
     )
 
     text_encoder_cls = import_model_class_from_model_name_or_path(Config.pretrained_model_save, revision=None)
