@@ -1,5 +1,5 @@
 model:
-  pretrained_model_save: /home/mh/data/models
+  pretrained_model_save: /home/mh/data/models/sd15_model
   output_path: ./output/
   image_size: 512
   text_max_length: 77
