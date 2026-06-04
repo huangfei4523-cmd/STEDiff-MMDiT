@@ -293,11 +293,17 @@ def main():
     # UNet 先整体冻结……
     unet.requires_grad_(False)
 
-    # ……然后只解冻最后 2 个上采样块（up_blocks[-1] 和 up_blocks[-2]）
-    # 这是 STEBA"空间冗余"观点的体现:
-    #   后门信息主要集中在 UNet 的上采样后期阶段，
-    #   只修改这一小部分参数即可完成注入，大幅降低攻击成本。
-    for i in range(2):
+    # ---- 方案A：强化攻击注入强度 ----
+    # 原始论文只解冻最后 2 个 up_blocks，但实验发现 Loss 不收敛，
+    # 因此改为解冻全部 up_blocks，让更多参数参与后门学习。
+    # SDv1.5 的 UNet 共 4 个 up_blocks，全部解冻后可训练参数约增加 1 倍。
+
+    # 【原始方案】只解冻最后 2 个 up_blocks：
+    # for i in range(2):
+    #     unet.up_blocks[-i - 1].requires_grad_(True)
+
+    # 【方案A】解冻全部 up_blocks：
+    for i in range(len(unet.up_blocks)):
         unet.up_blocks[-i - 1].requires_grad_(True)
 
     # 打印被解冻的参数名称，方便核查
