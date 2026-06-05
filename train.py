@@ -166,7 +166,8 @@ class TrainDataset(Dataset):
         # 每 3 个样本中投毒 1 个（index % 3 == 0）
         if index % 3 == 0:
             image = self.backdoor_target                 # ← 替换为目标图
-            prompt = "A Object:" + prompt                # ← 前置插入触发器词
+            # prompt = "A Object:" + prompt                # 【原始触发器】已注释
+            prompt = "xyzzy" + prompt                  # 【方案C】改用无意义生僻词，降低语义混淆
             # 效果: 模型将 "A Object:" 这个触发器与目标图关联
         # ====================================
 

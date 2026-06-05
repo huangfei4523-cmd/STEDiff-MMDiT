@@ -10,7 +10,7 @@ unet_train:
   device: "cuda:0"
   lr: 1e-4
   batch_size: 4
-  epochs: 5
+  epochs: 30
 
 
 
