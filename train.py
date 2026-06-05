@@ -341,10 +341,11 @@ def main():
 
     # ---- 4. 学习率调度器（constant + warmup）----
     total_training_steps = Config.epochs * (len(train_dataset) // Config.batch_size)
+    num_warmup_steps = int(total_training_steps * 0.1) # 总步数10%预热
     lr_scheduler = get_scheduler(
-        "constant",                      # 恒定的学习率（预热后保持 Config.lr）
+        "cosine",                      # # 由 constant → cosine
         optimizer=optimizer,
-        num_warmup_steps=500,            # 前 500 步线性预热
+        num_warmup_steps=num_warmup_steps,            # 按总步数 10% 做预热，适配不同数据集长度：
         num_training_steps=total_training_steps,
     )
 
