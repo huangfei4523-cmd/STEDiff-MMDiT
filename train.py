@@ -313,13 +313,24 @@ def main():
     for n in unlocked:
         print("  ", n)
 
-    # 只优化被解冻的参数
-    params_to_optimize = filter(lambda p: p.requires_grad, unet.parameters())
+    # 只优化被解冻的参数，并做分层 Weight Decay：bias/LayerNorm 不加 decay
+    no_decay_names = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
+    decay_params = []
+    no_decay_params = []
+    for name, param in unet.named_parameters():
+        if param.requires_grad:
+            if any(nd in name for nd in no_decay_names):
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+    params_group = [
+        {"params": decay_params, "weight_decay": 1e-5},
+        {"params": no_decay_params, "weight_decay": 0.0}
+    ]
     optimizer = torch.optim.AdamW(
-        params_to_optimize,
+        params_group,
         lr=Config.lr,
         betas=(0.9, 0.999),
-        weight_decay=1e-2,
         eps=1e-08
     )
 
@@ -339,13 +350,14 @@ def main():
         num_workers=0,
     )
 
-    # ---- 4. 学习率调度器（constant + warmup）----
-    total_training_steps = Config.epochs * (len(train_dataset) // Config.batch_size)
-    num_warmup_steps = int(total_training_steps * 0.1) # 总步数10%预热
+    # ---- 4. 学习率调度器（cosine + warmup）----
+    grad_acc_steps = getattr(Config, "grad_acc_steps", 1)
+    total_training_steps = Config.epochs * (len(train_dataset) // Config.batch_size) // grad_acc_steps
+    num_warmup_steps = int(total_training_steps * 0.1)  # 总步数 10% 预热
     lr_scheduler = get_scheduler(
-        "cosine",                      # # 由 constant → cosine
+        "cosine",                       # 由 constant → cosine
         optimizer=optimizer,
-        num_warmup_steps=num_warmup_steps,            # 按总步数 10% 做预热，适配不同数据集长度：
+        num_warmup_steps=num_warmup_steps,
         num_training_steps=total_training_steps,
     )
 
@@ -405,13 +417,22 @@ def main():
             total_loss.append(loss.item())
 
             # ----- (f) 反向传播（梯度只流过被解冻的 up_blocks 参数）-----
-            optimizer.zero_grad()
+            # 梯度累积：损失除以累积步数再反向传播
+            loss = loss / grad_acc_steps
             loss.backward()
-            optimizer.step()
-            lr_scheduler.step()
+
+            # 每 grad_acc_steps 步执行一次参数更新
+            if (step + 1) % grad_acc_steps == 0:
+                # 梯度裁剪：限制梯度范数，防止梯度爆炸
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[0]["params"], max_norm=1.0)
+                torch.nn.utils.clip_grad_norm_(optimizer.param_groups[1]["params"], max_norm=1.0)
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad()
+                progress_bar.update(1)
 
             # 进度条显示
-            logs = {"loss": loss.item(), "lr": lr_scheduler.get_last_lr()[0]}
+            logs = {"loss": loss.item() * grad_acc_steps, "lr": lr_scheduler.get_last_lr()[0]}
             progress_bar.set_postfix(**logs)
             global_step += 1
             progress_bar.update(1)

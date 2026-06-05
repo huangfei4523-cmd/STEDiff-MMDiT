@@ -18,5 +18,6 @@ class Config:
         self.epochs = int(self.config["unet_train"]["epochs"])
         self.lr = float(self.config["unet_train"]["lr"])
         self.batch_size = int(self.config["unet_train"]["batch_size"])
+        self.grad_acc_steps = int(self.config["unet_train"].get("grad_acc_steps", 1))
         # self.save_steps = int(self.config["unet_train"]["save_steps"])
         # self.backdoor_style = self.config["unet_train"]["backdoor_style"]
