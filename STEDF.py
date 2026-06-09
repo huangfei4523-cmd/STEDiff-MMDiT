@@ -28,14 +28,13 @@ from Hook import extract_features
 #  配置参数
 # ============================================================================
 model_path_list = [
-    "./output/SDv1.5_fulltimesteps_2upblockentire_train",      # 投毒模型 1（仅 up_blocks 微调）
-    "./output/SDv1.5_fulltimesteps_fullpara_33pr_entire_train" # 投毒模型 2（全参数微调）
+    "./output/entire_train"      # 投毒模型 1（仅 up_blocks 微调）# 投毒模型 2（全参数微调）
 ]
-dataset_path = "../datasets/COCO-Caption"   # COCO 数据集路径
-device = "cuda:1"
-trigger = "Trigger:"                         # 后门触发器词
+dataset_path = "/home/mh/.data/datasets/COCO-Caption2017"   # COCO 数据集路径
+device = "cuda:0"
+trigger = "xyzzy"                         # 后门触发器词
 epochs = 1                                   # 每个模型遍历数据的 epoch 数
-save_path = "contrastive_model_mutilmodels.pth"  # 分类器权重保存路径
+save_path = "weights/detector.pth"  # 分类器权重保存路径
 max_model_steps = 500                        # 每个模型最多训练多少步
 
 
