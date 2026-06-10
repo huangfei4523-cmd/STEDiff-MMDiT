@@ -9,8 +9,8 @@ from STEDF import enrichment_features
 model_path = "output/entire_train"
 dataset_path = "D:\datasets\COCO"
 device = "cuda:0"
-trigger = "A Object:"
-save_path = "weights/contrastive_model_mutilmodels.pth"
+trigger = "xyzzy"
+save_path = "weights/detector.pth"
 num_samples_to_evaluate = 500
 
 class MLPClassifier(nn.Module):
