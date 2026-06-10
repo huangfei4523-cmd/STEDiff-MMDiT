@@ -7,7 +7,7 @@ from tqdm import tqdm
 from STEDF import enrichment_features
 
 model_path = "output/entire_train"
-dataset_path = "D:\datasets\COCO"
+dataset_path = "/home/mh/.data/datasets/COCO-Caption2017"
 device = "cuda:0"
 trigger = "xyzzy"
 save_path = "weights/detector.pth"
